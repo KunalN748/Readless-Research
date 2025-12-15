@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Loaded PDF Documents</h1>
+
+<div class="summary">
+    <p><strong>Total documents loaded:</strong> {{ num_documents }}</p>
+    <p><strong>Total chunks created:</strong> {{ num_chunks }}</p>
+</div>
+
+<hr>
+
+<h2>Document Chunks</h2>
+<p>Documents have been split into {{ num_chunks }} chunks for better processing.</p>
+
+<div class="chunks">
+    {% for chunk in chunks %}
+    <div class="chunk" style="margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
+        <h3>Chunk {{ forloop.counter }}</h3>
+        <p><strong>Source:</strong> {{ chunk.metadata.source }}</p>
+        <p><strong>Page:</strong> {{ chunk.metadata.page|default:"N/A" }}</p>
+        <p><strong>Content:</strong></p>
+        <pre style="white-space: pre-wrap; background: #f5f5f5; padding: 10px;">{{ chunk.page_content|truncatewords:100 }}</pre>
+        <hr>
+    </div>
+    {% empty %}
+    <p>No chunks found. Make sure you have PDF files in myapp/data/</p>
+    {% endfor %}
+</div>
+
+<a href="{% url 'home' %}">Back to Home</a>
+{% endblock %}

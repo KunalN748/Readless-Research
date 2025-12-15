@@ -1,4 +1,10 @@
 {% extends "base.html" %} {%block title %} Home - Django App {% endblock %} 
 {% block content %}
-<p>Welcome to the home page!</p>
+<h1>Welcome to the home page!</h1>
+<div class="links">
+    <a href="{% url 'todos' %}">View Todos</a>
+    <a href="{% url 'load_pdfs' %}">Load PDFs</a>
+</div>
+
+<p>Your AI-powered PDF research assistant.</p>
 {% endblock %}
