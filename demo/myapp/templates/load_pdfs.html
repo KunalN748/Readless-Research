@@ -1,6 +1,9 @@
 {% extends 'base.html' %}
 
 {% block content %}
+
+<a href="{% url 'home' %}">Back to Home</a>
+
 <h1>Loaded PDF Documents</h1>
 
 <div class="summary">
@@ -28,5 +31,5 @@
     {% endfor %}
 </div>
 
-<a href="{% url 'home' %}">Back to Home</a>
+
 {% endblock %}
