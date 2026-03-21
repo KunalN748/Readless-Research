@@ -21,4 +21,5 @@ def load_pdfs(request):
         "num_chunks": len(chunks),
     }
     return render(request, "load_pdfs.html", context)
-    #return HttpResponse("Loaded " + str(len(documents)) + " documents.")
+    #return render(request, "load_pdfs.html", {"message": "Loaded " + str(len(documents)) + " documents."})
+

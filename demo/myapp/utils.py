@@ -15,6 +15,7 @@ from langchain_community.vectorstores import Chroma
 
 # Define the path to your PDF data
 DATA_PATH = os.path.join(settings.BASE_DIR, 'myapp', 'data')
+CHROMA_PATH = os.path.join(settings.BASE_DIR, 'myapp', 'chroma_db') 
 
 def load_documents():
     """Load PDF documents from the data directory"""
@@ -31,13 +32,23 @@ def split_documents(documents: list[Document]):
     )  
     return text_splitter.split_documents(documents)
 
+def get_embeddings_function():
+    embeddings = BedrockEmbeddings(
+        credentials_profile_name='default', region_name='us-east-1'
+    )
+    return embeddings
+    
 def add_to_chroma(chunks: list[Document]):
     db = Chroma(
-        persist_directory= CHROMA_PATH, embedding_function=get_embeddings_function()
+        persist_directory=CHROMA_PATH, embedding_function=get_embeddings_function()
     )
-    #db.add_documents(new_chunks, ids = new_chunk_ids)
-    db.persist()
 
+    # Get existing IDs once, outside the loop — no need to query on every iteration
+    existing_items = db.get(include=[])  # ids are always included by default
+    existing_ids = set(existing_items['ids'])
+    print(f"Number of existing documents in DB: {len(existing_ids)}")
+
+    # Assign a unique ID to each chunk based on source, page, and chunk index
     last_page_id = None
     current_chunk_index = 0
 
@@ -46,38 +57,28 @@ def add_to_chroma(chunks: list[Document]):
         page = chunk.metadata.get("page")
         current_page_id = f"{source}:{page}"
 
-        #if the page ID is the same as the last one, increment the chunk index
+        # If same page as previous chunk, increment the index; otherwise reset
         if current_page_id == last_page_id:
             current_chunk_index += 1
         else:
             current_chunk_index = 0
-        
-        #add it to the chunk meta-data
-        #chunk.metadata["id"] = chunk_id
 
-        #add or update the docs
-        existing_items = db.get(include=[]) #ids are always included by default
-        existing_ids = set(existing_items['ids'])
-        print(f"Number of existing documents in DB: {len(existing_ids)}")
+        chunk_id = f"{current_page_id}:{current_chunk_index}"
+        chunk.metadata["id"] = chunk_id
+        last_page_id = current_page_id  # Track for next iteration
 
-        new_chunks = []
-        
-        #for chunk in chunks_with_ids:
-        #    if chunk.metadata["id"] not in existing_ids:
-        #        new_chunks.append(chunk)
-        #    new_chunks_ids = [chunk.metadata["id"] for chunk in new_chunks]
-        #    #db.add_documents(new_chunks, ids=new_chunk_ids) 
-        #    db.persist()
+    # Only add chunks that don't already exist in the DB
+    new_chunks = [chunk for chunk in chunks if chunk.metadata["id"] not in existing_ids]
 
-        
+    if new_chunks:
+        new_chunk_ids = [chunk.metadata["id"] for chunk in new_chunks]
+        db.add_documents(new_chunks, ids=new_chunk_ids)
+        db.persist()
+        print(f"Added {len(new_chunks)} new chunks to Chroma.")
+    else:
+        print("No new chunks to add — all already exist in DB.")
+
     return db
-CHROMA_PATH = os.path.join(settings.BASE_DIR, 'myapp', 'chroma_db')
-
-def get_embeddings_function():
-    embeddings = BedrockEmbeddings(
-        credentials_profile_name='default', region_name='us-east-1'
-    )
-    return embeddings
 
 def query_chroma(query: str, k: int = 5):
     db = Chroma(
